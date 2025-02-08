@@ -1,0 +1,6 @@
+beautifulsoup4==4.10.0
+colorama==0.4.4
+imutils==0.5.4
+opencv_python==4.5.4.60
+Pillow==10.3.0
+requests==2.32.2
