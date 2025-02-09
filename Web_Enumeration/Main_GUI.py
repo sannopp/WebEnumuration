@@ -8,7 +8,6 @@ import threading
 import web
 import portscanner
 import dir_search
-import waybackurl
 # from functools import partial
 
 set_width = 900
@@ -108,63 +107,6 @@ def email():
     f3.pack()
 
 
-def cert():
-    s = search.get()
-    if s.startswith("http://"):
-        s = s[7:]
-    if s.startswith("https://"):
-        s = s[8:]
-    web.a1 = s
-    t1 = threading.Thread(target=web.subdomain_crtsh)  # subdomains from cert.sh website
-    global x13
-    if x13 == 0:
-        x13 = 0
-        t1.start()
-        # web.subdomain_crtsh()
-
-
-def dns_dumpster():
-    s = search.get()
-    if s.startswith("http://"):
-        s = s[7:]
-    if s.startswith("https://"):
-        s = s[8:]
-    if s.startswith("www."):
-        s = s[4:]
-    web.a1 = s
-    t1 = threading.Thread(target=web.dns_dumpster)  # subdomains from DNSDumpster online tool
-    global x14
-    if x14 == 0:
-        x14 = 0
-        t1.start()
-        # web.dns_dumpster()
-
-
-def subdomain():
-    f4 = tk.Frame(root)
-    tk.Label(f4, text="Find subdomain", font="comicsansms 13 bold", pady=1).pack()
-    tk.Button(f4, text="Find from cert.sh", command=cert, font="comicsansms 11 italic").pack(side='left')
-    tk.Label(f4, text=" ", font="comicsansms 13 bold", pady=1).pack(side='left')
-    tk.Button(f4, text="Find from DNSDumpster", command=dns_dumpster, font="comicsansms 11 italic").pack(side='left')
-    f4.pack()
-
-
-def way_back_btn():
-    waybackurl.a1 = search.get()
-    t1 = threading.Thread(target=waybackurl.way_back_url)  # web.archive.org  way back urls
-    global x15
-    if x15 == 0:
-        x15 = 0
-        t1.start()
-        # waybackurl.way_back_url()
-
-
-def way_back():
-    f5 = tk.Frame(root)
-    tk.Label(f5, text="Way Back urls : ", font="comicsansms 13 bold", pady=1).pack(side='left')
-    tk.Button(f5, text="Find", command=way_back_btn, font="comicsansms 11 italic").pack()
-    f5.pack()
-
 
 def dirsearch_btn():
     dir_search.url = search.get()
@@ -218,7 +160,5 @@ def dir_search11():
 
 Port_Scan()
 email()
-subdomain()
-way_back()
 dir_search11()
 root.mainloop()
