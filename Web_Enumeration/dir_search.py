@@ -1,109 +1,145 @@
-from queue import Queue
-import requests
-from colorama import Fore
-import threading
+import os
 import sys
+import requests
+import threading
+from queue import Queue
+from colorama import Fore, init
 
-try:
-    a1 = sys.argv[1]
-    if a1.startswith('http'):
-        pass
-    else:
-        a1 = 'https://' + a1
-except IndexError:
-    # print(e)
-    a1 = "https://ldce.ac.in"
-    # print("target:", a1)
-url = a1
-# url = "https://www.geeksforgeeks.org/"
-d1 = []
+# Initialize colorama for Windows compatibility
+init(autoreset=True)
+
+# Ensure result directory exists
+os.makedirs("result", exist_ok=True)
+
+# Global variables
 q = Queue()
-s = "directory-list-2.3-small_edited"
-# fill Queue with lines
+discovered_dirs = []
+target_url = None
+wordlist_file = None
 
 
-def fill_lines():
-    with open(f"wordlist/{s}.txt") as f1:     # change file address
-        lines = f1.readlines()
-    for line in lines:
-        # line.strip()
-        m1_url = url + '/' + line.strip() + "/"
-        q.put(m1_url)
+def initialize_from_args():
+    """Initialize variables from command-line arguments if provided."""
+    global target_url, wordlist_file  
 
-# check directory if available
+    # Ensure at least 1 argument (target URL) is provided
+    if len(sys.argv) < 2:
+        print(Fore.RED + "Usage: python dir_search.py <target_url> [wordlist]\n")
+        sys.exit(1)
+
+    target_url = sys.argv[1]
+    
+    if not target_url.startswith('http'):
+        target_url = 'https://' + target_url
+
+    # If a wordlist is provided, use it; otherwise, set a default wordlist
+    wordlist_file = sys.argv[2] if len(sys.argv) > 2 else "wordlist/directory-list-2.3-small_edited.txt"
+
+    # Validate wordlist file
+    if not os.path.exists(wordlist_file):
+        print(Fore.RED + f"Error: Wordlist file '{wordlist_file}' not found.\n")
+        sys.exit(1)
 
 
-def dir_search_check(m_url):
-    # with open("D:/html/directory-list-lowercase-2.3-small.txt") as f1:
-    #     lines = f1.readlines()
-    # for line in lines:
-    #     # line.strip()
-    #     m_url = url + line.strip() + "/"
+def fill_queue():
+    """Load directory names from the wordlist and add to the queue."""
+    if wordlist_file is None:
+        print(Fore.RED + "Error: No wordlist file specified.")
+        sys.exit(1)
+
     try:
-        r = requests.get(m_url)
-        if not 399 < r.status_code < 500:
-            d1.append(f'{m_url}       #{r.status_code}')
-            print(f'{m_url}       #{r.status_code}')
-            return True
-        else:
-            return False
+        with open(wordlist_file, "r", encoding="utf-8") as file:
+            for line in file:
+                directory = line.strip()
+                if directory:
+                    full_url = f"{target_url.rstrip('/')}/{directory}/"
+                    q.put(full_url)
     except Exception as e:
-        # print(e)
-        pass
+        print(Fore.RED + f"Error reading wordlist: {e}")
+        sys.exit(1)
 
-# check all directories from queue
+
+def check_directory(url):
+    """Check if a directory exists by sending an HTTP request."""
+    try:
+        response = requests.get(url, timeout=5)
+        if 200 <= response.status_code < 400:  # Success codes
+            print(Fore.GREEN + f"{url}       #{response.status_code}")
+            discovered_dirs.append(f"{url}       #{response.status_code}")
+    except requests.RequestException:
+        pass
 
 
 def worker():
-    try:
-        while not q.empty():
-            m_url = q.get()
-            dir_search_check(m_url)
-    except KeyboardInterrupt:
-        print(Fore.YELLOW, 'KeyboardInterrupt Exiting...')
-
-# save results to file
+    """Worker function to process URLs from the queue."""
+    while not q.empty():
+        url = q.get()
+        check_directory(url)
 
 
-def write_dir_results():
-    # with open(f"{url[8:]}_direct.txt", 'w') as results:
-    #     for i in d1:
-    #         results.write(i)
-    results = open("result/dirs.txt", 'a')
-    for i in d1:
-        results.write(f'{i} \n')
-    results.close()
-    print('results save to: dirs.txt')
+def run_threads():
+    """Run the directory enumeration using multiple threads."""
+    print(Fore.YELLOW + f"Searching directories for {target_url} using {wordlist_file}\n")
 
-# run worker function using threads for speed
-
-
-def dir_search_run():
-    # with open(f"wordlist/{wordlist}.txt") as f1:     # change file address
-    #     lines = f1.readlines()
-    # for line in lines:
-    #     line.strip()
-        # m1_url = url + '/' + line.strip() + "/"
-        # q.put(m1_url)
-    print(Fore.YELLOW, f'searching directories for {url}', Fore.GREEN)
-    thread_list = []
-    for i in range(120):
+    threads = []
+    for _ in range(100):  # Adjust thread count as needed
         thread = threading.Thread(target=worker)
-        thread_list.append(thread)
-
-    for thread in thread_list:
         thread.start()
+        threads.append(thread)
 
-    for thread in thread_list:
+    for thread in threads:
         thread.join()
 
 
-def run():
-    fill_lines()
-    dir_search_run()
-    write_dir_results()
+def save_results():
+    """Save discovered directories to a result file."""
+    result_file = "result/dirs.txt"
+    with open(result_file, "w", encoding="utf-8") as file:
+        for entry in discovered_dirs:
+            file.write(entry + "\n")
+
+    print(Fore.CYAN + f"\nResults saved to: {result_file}")
 
 
-if __name__ == '__main__':
-    dir_search_run()
-    write_dir_results()
+def run_directory_search(url, wordlist="wordlist/directory-list-2.3-small_edited.txt"):
+    """Run directory search without command-line arguments (for GUI use)."""
+    global target_url, wordlist_file
+    target_url = url
+    wordlist_file = wordlist
+
+    if not os.path.exists(wordlist_file):
+        print(Fore.RED + f"Error: Wordlist file '{wordlist_file}' not found.\n")
+        return
+
+    fill_queue()
+    run_threads()
+
+    print(Fore.CYAN + "\nDiscovered Directories:")
+    if discovered_dirs:
+        for entry in discovered_dirs:
+            print(entry)
+    else:
+        print(Fore.RED + "No accessible directories found.")
+
+    save_results()
+
+
+def main():
+    """Main execution function for CLI."""
+    initialize_from_args()
+    fill_queue()
+    run_threads()
+
+    print(Fore.CYAN + "\nDiscovered Directories:")
+    if discovered_dirs:
+        for entry in discovered_dirs:
+            print(entry)
+    else:
+        print(Fore.RED + "No accessible directories found.")
+
+    save_results()
+
+
+# Ensure CLI execution only when run directly
+if __name__ == "__main__":  # ✅ Fixed typo here
+    main()

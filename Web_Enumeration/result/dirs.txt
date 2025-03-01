@@ -1,0 +1,11 @@
+https://bing.com/events/       #200
+https://bing.com/partners/       #200
+https://bing.com/new/       #200
+https://bing.com/gallery/       #200
+https://bing.com/stories/       #200
+https://bing.com/music/       #200
+https://bing.com/wiki/       #200
+https://bing.com/images/       #200
+https://bing.com/version/       #200
+https://bing.com/weather/       #200
+https://bing.com/apps/       #200

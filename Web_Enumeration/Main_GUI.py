@@ -1,164 +1,120 @@
 import tkinter as tk
-# import PIL.Image
-# import PIL.ImageTk
-# import cv2
-# from functools import partial
 import threading
-# import imutils
+import sys
 import web
 import portscanner
 import dir_search
-# from functools import partial
+import io
 
-set_width = 900
-set_height = 600
-
+# Initialize GUI
 root = tk.Tk()
-root.title('Web Enumeration')
-root.geometry("900x600")
-root.minsize(800, 500)
-# root.configure()
+root.title('Web Enumeration Tool')
+root.geometry("900x650")
+root.configure(bg="#1e1e1e")  # Dark mode background
 
+# Frame for Output Box
+output_frame = tk.Frame(root, bg="#1e1e1e")
+output_frame.pack(pady=10, padx=10, fill="both", expand=True)
 
-def print_search():
-    l1.config(text=f"Target: {search.get()}")
-    pass
+# Styled Output Text Box
+output_text = tk.Text(output_frame, height=15, width=100, wrap='word', bg="#2d2d2d", fg="white",
+                      font=("Consolas", 12), insertbackground="white", relief="flat")
+output_text.pack(fill="both", expand=True, padx=10, pady=10)
+output_text.insert(tk.END, "Results will be displayed here...\n")
 
+# Function to display output inside GUI output box
+def print_output(text):
+    output_text.insert(tk.END, text + "\n")
+    output_text.see(tk.END)
 
+# Redirect standard output to GUI
+class RedirectText(io.StringIO):
+    def write(self, string):
+        print_output(string)
+
+sys.stdout = RedirectText()  # Redirects print() output to the GUI
+
+# Title Label
+title_label = tk.Label(root, text="Web Enumeration Tool", font=("Arial", 18, "bold"), bg="#1e1e1e", fg="white")
+title_label.pack(pady=10)
+
+# User Input for Target URL
 search = tk.StringVar()
-f1 = tk.Frame(root)
-tk.Entry(f1, textvariable=search, width=55, font="comicsansms 13 italic").pack(side='left', padx=6)
-tk.Button(f1, text="Print", command=print_search, font="comicsansms 9 italic", anchor='e').pack()
-l1 = tk.Label(root, text="Target:", font="comicsansms 13 italic", padx=6)
-f1.pack(anchor='w', pady=5, padx=6)
-l1.pack(anchor='w')
+frame_target = tk.Frame(root, bg="#1e1e1e")
+tk.Label(frame_target, text="Target URL:", font=("Arial", 12), bg="#1e1e1e", fg="white").pack(side='left', padx=5)
+tk.Entry(frame_target, textvariable=search, width=50, font=("Consolas", 12), bg="#2d2d2d", fg="white", relief="flat").pack(side='left', padx=5)
+frame_target.pack(pady=5)
 
-from1 = tk.StringVar()
-to1 = tk.StringVar()
-thread1 = tk.StringVar()
-email_link = tk.StringVar()
-Checkbutton1 = tk.IntVar()
-x11 = 0
-x12 = 0
-x13 = 0
-x14 = 0
-x15 = 0
-x16 = 0
-
-
+# Function to execute port scanning and display results
 def port_scanner_btn():
-    s = search.get()
-    if s.startswith("http://"):
-        s = s[7:]
-    if s.startswith("https://"):
-        s = s[8:]
-    # print(s)
-    portscanner.target = s
+    target = search.get().replace("http://", "").replace("https://", "")
     a = int(from1.get())
     b = int(to1.get())
     x = int(thread1.get())
-    t1 = threading.Thread(target=portscanner.portscanner, args=(x, a, b))
-    # portscanner.portscanner(x, a, b)  # port scanning
-    # t1.start()
 
-    global x11
-    if x11 == 0:
-        x11 = 0
-        t1.start()
-        # portscanner.portscanner(x, a, b)
+    def run_scan():
+        portscanner.target = target
+        portscanner.portscanner(x, a, b)
 
+        with open("result/port.txt", "r") as file:
+            result = file.read()
+        print_output(f"\n🔍 Port Scan Results:\n{result}")
 
-def Port_Scan():
-    global from1, to1, thread1
-    f2 = tk.Frame(root)
-    tk.Label(f2, text="Port Scan", font="comicsansms 13 bold", pady=1).pack()
-    tk.Label(f2, text="Port Range:", font="comicsansms 13").pack(side='left')
-    tk.Label(f2, text="From=", font="comicsansms 13").pack(side='left')
-    tk.Entry(f2, textvariable=from1, width=8, font="comicsansms 13 italic").pack(side='left')
-    tk.Label(f2, text="To=", font="comicsansms 13").pack(side='left')
-    tk.Entry(f2, textvariable=to1, width=8, font="comicsansms 13 italic").pack(side='left')
-    tk.Label(f2, text="Threads=", font="comicsansms 13").pack(side='left')
-    tk.Entry(f2, textvariable=thread1, width=8, font="comicsansms 13 italic").pack(side='left')
-    tk.Label(f2, text="", font="comicsansms 13").pack(side='left')
-    tk.Button(f2, text="Scan", command=port_scanner_btn, font="comicsansms 9 italic").pack()
-    f2.pack()
+    threading.Thread(target=run_scan).start()
 
+# Port Scanning UI
+frame_port_scan = tk.Frame(root, bg="#1e1e1e")
+tk.Label(frame_port_scan, text="Port Scan", font=("Arial", 12, "bold"), bg="#1e1e1e", fg="white").pack(side='top', pady=2)
+from1, to1, thread1 = tk.StringVar(), tk.StringVar(), tk.StringVar()
+tk.Label(frame_port_scan, text="From:", font=("Arial", 11), bg="#1e1e1e", fg="white").pack(side='left', padx=2)
+tk.Entry(frame_port_scan, textvariable=from1, width=6, bg="#2d2d2d", fg="white", relief="flat").pack(side='left', padx=2)
+tk.Label(frame_port_scan, text="To:", font=("Arial", 11), bg="#1e1e1e", fg="white").pack(side='left', padx=2)
+tk.Entry(frame_port_scan, textvariable=to1, width=6, bg="#2d2d2d", fg="white", relief="flat").pack(side='left', padx=2)
+tk.Label(frame_port_scan, text="Threads:", font=("Arial", 11), bg="#1e1e1e", fg="white").pack(side='left', padx=2)
+tk.Entry(frame_port_scan, textvariable=thread1, width=6, bg="#2d2d2d", fg="white", relief="flat").pack(side='left', padx=2)
+tk.Button(frame_port_scan, text="Scan", command=port_scanner_btn, font=("Arial", 10, "bold"), bg="#008CBA", fg="white", relief="flat").pack(side='left', padx=5)
+frame_port_scan.pack(pady=5)
 
+# Function to execute email extraction
 def email_btn():
-    # print(email_link.get())
     web.a1 = search.get()
     web.argument = int(email_link.get())
-    t1 = threading.Thread(target=web.scrap_emails)  # email scraping
-    global x12
-    if x12 == 0:
-        x12 = 0
-        t1.start()
-        # web.scrap_emails()
 
+    def run_email_scraper():
+        web.scrap_emails()
 
-def email():
-    global email_link
-    f3 = tk.Frame(root)
-    tk.Label(f3, text="Email Scraper", font="comicsansms 13 bold", pady=1).pack()
-    tk.Label(f3, text="Number of Links you want to search=", font="comicsansms 13").pack(side='left')
-    tk.Entry(f3, textvariable=email_link, width=8, font="comicsansms 13 italic").pack(side='left')
-    tk.Label(f3, text="", font="comicsansms 13").pack(side='left')
-    tk.Button(f3, text="Search", command=email_btn, font="comicsansms 9 italic").pack()
-    f3.pack()
+        with open("result/mail.txt", "r") as file:
+            result = file.read()
+        print_output(f"\n📧 Email Extraction Results:\n{result}")
 
+    threading.Thread(target=run_email_scraper).start()
 
+# Email Extraction UI
+frame_email = tk.Frame(root, bg="#1e1e1e")
+tk.Label(frame_email, text="Email Extraction", font=("Arial", 12, "bold"), bg="#1e1e1e", fg="white").pack(side='left', padx=5)
+email_link = tk.StringVar()
+tk.Entry(frame_email, textvariable=email_link, width=6, bg="#2d2d2d", fg="white", relief="flat").pack(side='left', padx=5)
+tk.Button(frame_email, text="Search", command=email_btn, font=("Arial", 10, "bold"), bg="#008CBA", fg="white", relief="flat").pack(side='left', padx=5)
+frame_email.pack(pady=5)
 
+# Function to execute directory bruteforce
 def dirsearch_btn():
-    dir_search.url = search.get()
-    x = Checkbutton1.get()
-    if x == 1:
-        s = "apache-user-enum-1.0"
-    elif x == 2:
-        s = "directory-list-1.0"
-    elif x == 3:
-        s = "directory-list-2.3-medium"
-    elif x == 4:
-        s = "directory-list-2.3-small_edited"
-    elif x == 5:
-        s = "directory-list-2.3-small_original"
-    elif x == 6:
-        s = "directory-list-lowercase-2.3-medium"
-    elif x == 7:
-        s = "directory-list-lowercase-2.3-small"
-    else:
-        s = "directory-list-2.3-small_edited"
-    dir_search.s = s
-    dir_search.run()
-    # dir_search.dir_search_run(s)  # find hidden directories
-    # dir_search.write_dir_results()
+    target = search.get()
 
+    def run_dirsearch():
+        dir_search.run_directory_search(target)
 
-def dir_search11():
-    f6 = tk.Frame(root)
-    tk.Label(f6, text="Directory search", font="comicsansms 13 bold", pady=1).pack()
-    tk.Label(f6, text="wordlist:", font="comicsansms 11", pady=1).pack(side='left')
-    global Checkbutton1
+        with open("result/dirs.txt", "r") as file:
+            result = file.read()
+        print_output(f"\n📂 Directory Bruteforce Results:\n{result}")
 
-    tk.Radiobutton(f6, text="apache-user-enum-1.0", variable=Checkbutton1, value=1, indicator=0,
-                   ).pack()
-    tk.Radiobutton(f6, text="directory-list-1.0", variable=Checkbutton1, value=2, indicator=0,
-                   ).pack()
-    tk.Radiobutton(f6, text="directory-list-2.3-medium", variable=Checkbutton1, value=3, indicator=0,
-                   ).pack(fill='x')
-    tk.Radiobutton(f6, text="directory-list-2.3-small_edited", variable=Checkbutton1, value=4, indicator=0,
-                   ).pack()
-    tk.Radiobutton(f6, text="directory-list-2.3-small_original", variable=Checkbutton1, value=5, indicator=0,
-                   ).pack()
-    # tk.Label(f6, text="  ").pack()
-    tk.Radiobutton(f6, text="directory-list-lowercase-2.3-medium", variable=Checkbutton1, value=6, indicator=0,
-                   ).pack()
-    tk.Radiobutton(f6, text="directory-list-lowercase-2.3-small", variable=Checkbutton1, value=7, indicator=0,
-                   ).pack()
-    tk.Button(f6, text="dirsearch", command=dirsearch_btn, font="comicsansms 11 italic").pack(side='right')
-    f6.pack()
+    threading.Thread(target=run_dirsearch).start()
 
+# Directory Bruteforcing UI
+frame_dir = tk.Frame(root, bg="#1e1e1e")
+tk.Label(frame_dir, text="Directory Search", font=("Arial", 12, "bold"), bg="#1e1e1e", fg="white").pack(side='left', padx=5)
+tk.Button(frame_dir, text="Run", command=dirsearch_btn, font=("Arial", 10, "bold"), bg="#008CBA", fg="white", relief="flat").pack(side='left', padx=5)
+frame_dir.pack(pady=5)
 
-Port_Scan()
-email()
-dir_search11()
+# Run the main event loop
 root.mainloop()
